@@ -112,9 +112,9 @@ publishing {
 }
 
 signing {
-    useInMemoryPgpKeys(
-        providers.environmentVariable("GPG_SIGNING_KEY").orNull,
-        providers.environmentVariable("GPG_SIGNING_PASSWORD").orNull
-    )
+    val signingKey = providers.environmentVariable("GPG_SIGNING_KEY").orNull
+    val signingPassword = providers.environmentVariable("GPG_SIGNING_PASSWORD").orElse("").get()
+    useInMemoryPgpKeys(signingKey, signingPassword)
     sign(publishing.publications)
+    isRequired = signingKey != null
 }
