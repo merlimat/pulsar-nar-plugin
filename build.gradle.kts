@@ -2,6 +2,8 @@ plugins {
     alias(libs.plugins.kotlin.jvm)
     `java-gradle-plugin`
     alias(libs.plugins.gradle.plugin.publish)
+    `maven-publish`
+    signing
 }
 
 kotlin {
@@ -65,4 +67,54 @@ gradlePlugin {
     }
 
     testSourceSets(functionalTest)
+}
+
+publishing {
+    publications.withType<MavenPublication> {
+        pom {
+            name.set("Pulsar NAR Plugin")
+            description.set("Packages projects as NAR (NiFi Archive) files for Apache Pulsar IO connectors")
+            url.set("https://github.com/merlimat/pulsar-nar-plugin")
+
+            licenses {
+                license {
+                    name.set("Apache License, Version 2.0")
+                    url.set("https://www.apache.org/licenses/LICENSE-2.0")
+                }
+            }
+
+            developers {
+                developer {
+                    id.set("merlimat")
+                    name.set("Matteo Merli")
+                    url.set("https://github.com/merlimat")
+                }
+            }
+
+            scm {
+                url.set("https://github.com/merlimat/pulsar-nar-plugin")
+                connection.set("scm:git:https://github.com/merlimat/pulsar-nar-plugin.git")
+                developerConnection.set("scm:git:git@github.com:merlimat/pulsar-nar-plugin.git")
+            }
+        }
+    }
+
+    repositories {
+        maven {
+            name = "mavenCentral"
+            url = uri("https://ossrh-staging-api.central.sonatype.com/service/local/staging/deploy/maven2/")
+            credentials {
+                username = providers.environmentVariable("MAVEN_CENTRAL_USERNAME").orNull
+                password = providers.environmentVariable("MAVEN_CENTRAL_PASSWORD").orNull
+            }
+        }
+    }
+}
+
+signing {
+    useInMemoryPgpKeys(
+        providers.environmentVariable("GPG_SIGNING_KEY").orNull,
+        providers.environmentVariable("GPG_SIGNING_PASSWORD").orNull
+    )
+    sign(publishing.publications)
 }
