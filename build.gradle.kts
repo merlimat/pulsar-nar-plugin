@@ -6,6 +6,19 @@ plugins {
     signing
 }
 
+version = providers.environmentVariable("RELEASE_VERSION")
+    .orElse(provider {
+        "git describe --tags --always".runCommand() ?: "0.0.0-SNAPSHOT"
+    }).map { it.removePrefix("v") }.get()
+
+fun String.runCommand(): String? =
+    ProcessBuilder(split(" "))
+        .directory(rootDir)
+        .redirectErrorStream(true)
+        .start()
+        .inputStream.bufferedReader().readText().trim()
+        .ifEmpty { null }
+
 kotlin {
     compilerOptions {
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)

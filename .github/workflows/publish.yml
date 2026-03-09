@@ -23,9 +23,12 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
 
       - run: ./gradlew check
+        env:
+          RELEASE_VERSION: ${{ github.ref_name  }}
 
       - run: ./gradlew publishAllPublicationsToMavenCentralRepository
         env:
+          RELEASE_VERSION: ${{ github.ref_name  }}
           MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
           MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
           GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
