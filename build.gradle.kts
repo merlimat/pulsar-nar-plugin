@@ -112,16 +112,6 @@ publishing {
         }
     }
 
-    repositories {
-        maven {
-            name = "mavenCentral"
-            url = uri("https://ossrh-staging-api.central.sonatype.com/service/local/staging/deploy/maven2/")
-            credentials {
-                username = providers.environmentVariable("MAVEN_CENTRAL_USERNAME").orNull
-                password = providers.environmentVariable("MAVEN_CENTRAL_PASSWORD").orNull
-            }
-        }
-    }
 }
 
 signing {

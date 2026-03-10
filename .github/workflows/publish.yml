@@ -22,11 +22,11 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      - run: ./gradlew check
+      - run: ./gradlew --no-configuration-cache check
         env:
           RELEASE_VERSION: ${{ github.ref_name  }}
 
-      - run: ./gradlew publishAllPublicationsToMavenCentralRepository
+      - run: ./gradlew --no-configuration-cache publishAggregationToCentralPortal
         env:
           RELEASE_VERSION: ${{ github.ref_name  }}
           MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
