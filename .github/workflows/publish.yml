@@ -26,7 +26,7 @@ jobs:
         env:
           RELEASE_VERSION: ${{ github.ref_name  }}
 
-      - run: ./gradlew publishAllPublicationsToCentralPortal
+      - run: ./gradlew publishAggregationToCentralPortal
         env:
           RELEASE_VERSION: ${{ github.ref_name  }}
           MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}

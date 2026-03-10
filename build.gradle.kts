@@ -5,6 +5,7 @@ plugins {
     `maven-publish`
     signing
     alias(libs.plugins.nmcp)
+    alias(libs.plugins.nmcp.aggregation)
 }
 
 version = providers.environmentVariable("RELEASE_VERSION")
@@ -123,9 +124,9 @@ signing {
     isRequired = signingKey != null
 }
 
-nmcp {
-    publishAllPublications {
-        username.set(providers.environmentVariable("MAVEN_CENTRAL_USERNAME"))
-        password.set(providers.environmentVariable("MAVEN_CENTRAL_PASSWORD"))
+nmcpAggregation {
+    centralPortal {
+        username = providers.environmentVariable("MAVEN_CENTRAL_USERNAME")
+        password = providers.environmentVariable("MAVEN_CENTRAL_PASSWORD")
     }
 }
