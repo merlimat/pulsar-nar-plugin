@@ -2,10 +2,7 @@ plugins {
     alias(libs.plugins.kotlin.jvm)
     `java-gradle-plugin`
     alias(libs.plugins.gradle.plugin.publish)
-    `maven-publish`
-    signing
-    alias(libs.plugins.nmcp)
-    alias(libs.plugins.nmcp.aggregation)
+    alias(libs.plugins.maven.publish.plugin)
 }
 
 version = providers.environmentVariable("RELEASE_VERSION")
@@ -84,49 +81,34 @@ gradlePlugin {
     testSourceSets(functionalTest)
 }
 
-publishing {
-    publications.withType<MavenPublication> {
-        pom {
-            name.set("Pulsar NAR Plugin")
-            description.set("Packages projects as NAR (NiFi Archive) files for Apache Pulsar IO connectors")
-            url.set("https://github.com/merlimat/pulsar-nar-plugin")
+mavenPublishing {
+    publishToMavenCentral(com.vanniktech.maven.publish.SonatypeHost.CENTRAL_PORTAL)
+    signAllPublications()
 
-            licenses {
-                license {
-                    name.set("Apache License, Version 2.0")
-                    url.set("https://www.apache.org/licenses/LICENSE-2.0")
-                }
-            }
+    pom {
+        name.set("Pulsar NAR Plugin")
+        description.set("Packages projects as NAR (NiFi Archive) files for Apache Pulsar IO connectors")
+        url.set("https://github.com/merlimat/pulsar-nar-plugin")
 
-            developers {
-                developer {
-                    id.set("merlimat")
-                    name.set("Matteo Merli")
-                    url.set("https://github.com/merlimat")
-                }
-            }
-
-            scm {
-                url.set("https://github.com/merlimat/pulsar-nar-plugin")
-                connection.set("scm:git:https://github.com/merlimat/pulsar-nar-plugin.git")
-                developerConnection.set("scm:git:git@github.com:merlimat/pulsar-nar-plugin.git")
+        licenses {
+            license {
+                name.set("Apache License, Version 2.0")
+                url.set("https://www.apache.org/licenses/LICENSE-2.0")
             }
         }
-    }
 
-}
+        developers {
+            developer {
+                id.set("merlimat")
+                name.set("Matteo Merli")
+                url.set("https://github.com/merlimat")
+            }
+        }
 
-signing {
-    val signingKey = providers.environmentVariable("GPG_SIGNING_KEY").orNull
-    val signingPassword = providers.environmentVariable("GPG_SIGNING_PASSWORD").orElse("").get()
-    useInMemoryPgpKeys(signingKey, signingPassword)
-    sign(publishing.publications)
-    isRequired = signingKey != null
-}
-
-nmcpAggregation {
-    centralPortal {
-        username = providers.environmentVariable("MAVEN_CENTRAL_USERNAME")
-        password = providers.environmentVariable("MAVEN_CENTRAL_PASSWORD")
+        scm {
+            url.set("https://github.com/merlimat/pulsar-nar-plugin")
+            connection.set("scm:git:https://github.com/merlimat/pulsar-nar-plugin.git")
+            developerConnection.set("scm:git:git@github.com:merlimat/pulsar-nar-plugin.git")
+        }
     }
 }
