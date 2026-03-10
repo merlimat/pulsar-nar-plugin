@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.gradle.plugin.publish)
     `maven-publish`
     signing
+    alias(libs.plugins.nmcp)
 }
 
 version = providers.environmentVariable("RELEASE_VERSION")
@@ -120,4 +121,11 @@ signing {
     useInMemoryPgpKeys(signingKey, signingPassword)
     sign(publishing.publications)
     isRequired = signingKey != null
+}
+
+nmcp {
+    publishAllPublications {
+        username.set(providers.environmentVariable("MAVEN_CENTRAL_USERNAME"))
+        password.set(providers.environmentVariable("MAVEN_CENTRAL_PASSWORD"))
+    }
 }
