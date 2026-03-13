@@ -37,10 +37,20 @@ class NarPlugin : Plugin<Project> {
         val extension = project.extensions.create(NAR_EXTENSION_NAME, NarExtension::class.java)
 
         // Set conventions from project properties
+        // Use providers to ensure lazy evaluation (version/group may be set after plugin apply)
+        val projectDir = project.projectDir
         extension.narId.convention(project.provider { project.name })
         extension.narGroup.convention(project.provider { project.group.toString() })
         extension.narVersion.convention(project.provider { project.version.toString() })
-        extension.buildTag.convention(project.provider { resolveGitTag(project) })
+        // buildTag convention is set but resolved lazily at execution time
+        // (see doFirst block in the nar task below)
+
+        // Resolve references at configuration time to avoid capturing Project
+        val mainSourceSet = project.extensions
+            .getByType(JavaPluginExtension::class.java)
+            .sourceSets.getByName("main")
+        val runtimeClasspath = project.configurations.getByName("runtimeClasspath")
+        val classesTask = project.tasks.named("classes")
 
         val narTask = project.tasks.register(NAR_TASK_NAME, NarTask::class.java) { task ->
             // Wire extension to task
@@ -51,16 +61,13 @@ class NarPlugin : Plugin<Project> {
             task.buildTag.set(extension.buildTag)
 
             // Include compiled classes + resources
-            val mainSourceSet = project.extensions
-                .getByType(JavaPluginExtension::class.java)
-                .sourceSets.getByName("main")
             task.from(mainSourceSet.output)
 
             // Bundle runtime dependencies into META-INF/bundled-dependencies/
-            task.from(project.configurations.getByName("runtimeClasspath")) {
+            task.from(runtimeClasspath) {
                 it.into("META-INF/bundled-dependencies")
             }
-            task.bundledDependencies.from(project.configurations.getByName("runtimeClasspath"))
+            task.bundledDependencies.from(runtimeClasspath)
 
             // Set deterministic manifest attributes at configuration time
             task.manifest { manifest ->
@@ -76,15 +83,21 @@ class NarPlugin : Plugin<Project> {
             }
 
             // Set timestamp and buildTag at execution time to avoid breaking up-to-date checks
+            // and to be compatible with Gradle configuration cache (no external processes at config time)
             task.doFirst {
                 val timestamp = DateTimeFormatter
                     .ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'")
                     .withZone(ZoneOffset.UTC)
                     .format(Instant.now())
+                val buildTag = if (extension.buildTag.isPresent) {
+                    extension.buildTag.get()
+                } else {
+                    resolveGitTag(projectDir)
+                }
                 task.manifest { manifest ->
                     val attrs = mutableMapOf<String, String>("Build-Timestamp" to timestamp)
-                    if (extension.buildTag.isPresent) {
-                        attrs["Build-Tag"] = extension.buildTag.get()
+                    if (buildTag != null) {
+                        attrs["Build-Tag"] = buildTag
                     }
                     manifest.attributes(attrs)
                 }
@@ -94,7 +107,7 @@ class NarPlugin : Plugin<Project> {
             task.archiveBaseName.set(extension.narId)
             task.archiveVersion.set(extension.narVersion)
 
-            task.dependsOn(project.tasks.named("classes"))
+            task.dependsOn(classesTask)
         }
 
         // Hook into assemble
@@ -107,10 +120,10 @@ class NarPlugin : Plugin<Project> {
         project.artifacts { it.add("default", narTask) }
     }
 
-    private fun resolveGitTag(project: Project): String? {
+    private fun resolveGitTag(projectDir: java.io.File): String? {
         return try {
             val process = ProcessBuilder("git", "describe", "--always", "--dirty")
-                .directory(project.projectDir)
+                .directory(projectDir)
                 .redirectErrorStream(true)
                 .start()
             val output = process.inputStream.bufferedReader().readText().trim()

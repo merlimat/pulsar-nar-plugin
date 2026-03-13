@@ -6,17 +6,11 @@ plugins {
 }
 
 version = providers.environmentVariable("RELEASE_VERSION")
-    .orElse(provider {
-        "git describe --tags --always".runCommand() ?: "0.0.0-SNAPSHOT"
-    }).map { it.removePrefix("v") }.get()
-
-fun String.runCommand(): String? =
-    ProcessBuilder(split(" "))
-        .directory(rootDir)
-        .redirectErrorStream(true)
-        .start()
-        .inputStream.bufferedReader().readText().trim()
-        .ifEmpty { null }
+    .orElse(providers.exec {
+        commandLine("git", "describe", "--tags", "--always")
+        workingDir = rootDir
+    }.standardOutput.asText.map { it.trim() })
+    .map { it.removePrefix("v") }.get()
 
 kotlin {
     compilerOptions {
@@ -83,7 +77,11 @@ gradlePlugin {
 
 mavenPublishing {
     publishToMavenCentral(com.vanniktech.maven.publish.SonatypeHost.CENTRAL_PORTAL, automaticRelease = true)
-    signAllPublications()
+    // Only sign when signing credentials are available (skip for local publishToMavenLocal)
+    if (project.hasProperty("signing.keyId") ||
+        System.getenv("ORG_GRADLE_PROJECT_signingInMemoryKey") != null) {
+        signAllPublications()
+    }
 
     pom {
         name.set("Pulsar NAR Plugin")
