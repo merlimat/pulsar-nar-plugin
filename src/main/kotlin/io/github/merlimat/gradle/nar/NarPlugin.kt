@@ -120,24 +120,32 @@ class NarPlugin : Plugin<Project> {
         // Disable default jar task
         project.tasks.named("jar", Jar::class.java) { it.enabled = false }
 
-        // Register NAR as an outgoing artifact on runtimeElements with artifactType = "nar".
-        // This allows consuming projects to resolve NAR files via artifact views:
-        //   configuration.incoming.artifactView {
+        // Create a separate consumable configuration for NAR artifacts.
+        // Consumers select it by requesting artifactType = "nar":
+        //   configurations.creating {
         //       attributes { attribute(ARTIFACT_TYPE_ATTRIBUTE, "nar") }
-        //   }.files
-        project.configurations.named("runtimeElements") { config ->
-            config.outgoing.variants.create("nar") { variant ->
-                variant.artifact(narTask) { artifact ->
-                    artifact.type = "nar"
-                }
-                variant.attributes { attrs ->
-                    attrs.attribute(
-                        ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE,
-                        "nar"
-                    )
-                }
+        //   }
+        // Using a separate configuration (instead of a variant on runtimeElements)
+        // avoids ambiguity when normal consumers resolve the project as a JAR dependency.
+        val narElements = project.configurations.create("narElements") { config ->
+            config.isCanBeResolved = false
+            config.isCanBeConsumed = true
+            config.attributes { attrs ->
+                attrs.attribute(
+                    ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE,
+                    "nar"
+                )
+                attrs.attribute(
+                    Usage.USAGE_ATTRIBUTE,
+                    project.objects.named(Usage::class.java, Usage.JAVA_RUNTIME)
+                )
+                attrs.attribute(
+                    Category.CATEGORY_ATTRIBUTE,
+                    project.objects.named(Category::class.java, Category.LIBRARY)
+                )
             }
         }
+        project.artifacts.add("narElements", narTask)
 
         // Also register on the default configuration for backwards compatibility
         project.artifacts { it.add("default", narTask) }
