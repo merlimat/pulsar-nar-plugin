@@ -17,6 +17,10 @@ package io.github.merlimat.gradle.nar
 
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.artifacts.type.ArtifactTypeDefinition
+import org.gradle.api.attributes.Category
+import org.gradle.api.attributes.LibraryElements
+import org.gradle.api.attributes.Usage
 import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.plugins.JavaPluginExtension
 import org.gradle.api.tasks.bundling.Jar
@@ -116,7 +120,26 @@ class NarPlugin : Plugin<Project> {
         // Disable default jar task
         project.tasks.named("jar", Jar::class.java) { it.enabled = false }
 
-        // Register nar as default artifact
+        // Register NAR as an outgoing artifact on runtimeElements with artifactType = "nar".
+        // This allows consuming projects to resolve NAR files via artifact views:
+        //   configuration.incoming.artifactView {
+        //       attributes { attribute(ARTIFACT_TYPE_ATTRIBUTE, "nar") }
+        //   }.files
+        project.configurations.named("runtimeElements") { config ->
+            config.outgoing.variants.create("nar") { variant ->
+                variant.artifact(narTask) { artifact ->
+                    artifact.type = "nar"
+                }
+                variant.attributes { attrs ->
+                    attrs.attribute(
+                        ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE,
+                        "nar"
+                    )
+                }
+            }
+        }
+
+        // Also register on the default configuration for backwards compatibility
         project.artifacts { it.add("default", narTask) }
     }
 
